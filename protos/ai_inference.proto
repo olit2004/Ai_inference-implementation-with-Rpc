@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package aiinference;
+
+
+service AIInference {
+
+
+  rpc AnalyzeSentiment (SentimentRequest) returns (SentimentResponse);
+
+ 
+  rpc GenerateText (GenerationRequest) returns (stream GenerationResponse);
+
+  
+  rpc SummarizeText (stream SummarizeRequest) returns (SummarizeResponse);
+
+  
+  rpc Chat (stream ChatRequest) returns (stream ChatResponse);
+}
+
+
+
+
+message SentimentRequest {
+  string text = 1;
+}
+
+message SentimentResponse {
+  string label = 1;        
+  float confidence = 2;    
+}
+
+
+
+message GenerationRequest {
+  string prompt = 1;
+  int32 max_tokens = 2;
+  float temperature = 3;
+}
+
+message GenerationResponse {
+  string token = 1;   
+  bool done = 2;      
+}
+
+
+message SummarizeRequest {
+  string chunk = 1;  
+}
+
+message SummarizeResponse {
+  string summary = 1;
+}
+
+
+
+
+message ChatRequest {
+  string user_id = 1;
+  string message = 2;
+}
+
+message ChatResponse {
+  string message = 1;
+}
