@@ -16,6 +16,10 @@ The system consists of:
 ### System Screenshot
 ![System Overview](screenshoot.png)
 
+### Automated Testing Demo
+![Automated Testing Demo](https://drive.google.com/uc?export=view&id=1ebSQwqMbzgB_aUyGPejhxhlwaVRljmeH)
+
+
 
 ## Key Features
 
