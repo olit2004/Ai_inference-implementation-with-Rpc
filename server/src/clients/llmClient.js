@@ -13,6 +13,35 @@ const client = axios.create({
   },
 });
 
+
+// Log request details
+client.interceptors.request.use((config) => {
+  console.log(`Making request to: ${config.url}`);
+  console.log(`Payload: ${JSON.stringify(config.data)}`);
+  return config;
+});
+
+
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.data) {
+      // If it's a stream, we need to read it to see the error message
+      if (typeof error.response.data.on === 'function') {
+        const chunks = [];
+        for await (const chunk of error.response.data) {
+          chunks.push(chunk);
+        }
+        const body = Buffer.concat(chunks).toString();
+        console.error('Groq API Error (Stream):', body);
+      } else {
+        console.error('Groq API Error:', JSON.stringify(error.response.data, null, 2));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // unary 
 async function analyzeSentiment(text) {
   const prompt = `
@@ -21,7 +50,7 @@ Also provide a confidence score between 0 and 1.
 
 Text: "${text}"
 
-Respond in JSON:
+Respond in ONLY JSON:
 { "label": "...", "confidence": 0.0 }
 `;
 
@@ -31,17 +60,25 @@ Respond in JSON:
     temperature: 0,
   });
 
-  const content = res.data.choices[0].message.content;
- 
-   try {
+  let content = res.data.choices[0].message.content;
+
+  try {
+    // Attempt to extract JSON if it's wrapped in markdown
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      content = jsonMatch[0];
+    }
     return JSON.parse(content);
-   
-    } catch (err) {
-        return { label: 'UNKNOWN', confidence: 0.5 };
-     }
+
+  } catch (err) {
+    console.error('Failed to parse sentiment JSON. Raw content:', content);
+    return { label: 'UNKNOWN', confidence: 0.5 };
+  }
 }
 
 
+
+//server streaming
 
 async function* generateStream(prompt) {
   const res = await client.post(
@@ -71,13 +108,14 @@ async function* generateStream(prompt) {
 
           if (token) yield token;
         } catch (err) {
-          
+
         }
       }
     }
   }
 }
 
+// client streaming
 
 async function summarize(text) {
   const prompt = `
@@ -97,6 +135,7 @@ ${text}
 
 
 
+// bidirectional streaming
 async function* chatStream(messages) {
   const res = await client.post(
     '/chat/completions',
@@ -124,7 +163,7 @@ async function* chatStream(messages) {
           const token = parsed.choices?.[0]?.delta?.content;
 
           if (token) yield token;
-        } catch (err) {}
+        } catch (err) { }
       }
     }
   }

@@ -1,10 +1,8 @@
-version: '3.9'
-
 services:
 
-  # =========================
+
   # NGINX LOAD BALANCER
-  # =========================
+
   nginx:
     image: nginx:latest
     container_name: grpc-nginx
@@ -17,30 +15,42 @@ services:
       - server2
       - server3
 
-  # =========================
+
   # gRPC SERVER INSTANCES
-  # =========================
+
 
   server1:
     build: ./server
     container_name: grpc-server-1
     environment:
       - PORT=50051
+    env_file:
+      - ./server/.env
     expose:
       - "50051"
+    volumes:
+      - ./protos:/protos
 
   server2:
     build: ./server
     container_name: grpc-server-2
     environment:
       - PORT=50051
+    env_file:
+      - ./server/.env
     expose:
       - "50051"
+    volumes:
+      - ./protos:/protos
 
   server3:
     build: ./server
     container_name: grpc-server-3
     environment:
       - PORT=50051
+    env_file:
+      - ./server/.env
     expose:
       - "50051"
+    volumes:
+      - ./protos:/protos
