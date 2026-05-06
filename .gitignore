@@ -45,3 +45,7 @@ temp/
 *.seed
 *.tgz
 giftask1.gif
+
+# Presentation Guide
+PRESENTATION_GUIDE.md
+presentation_guide.md

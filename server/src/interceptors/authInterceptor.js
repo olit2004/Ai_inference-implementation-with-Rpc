@@ -7,8 +7,7 @@ const AUTH_KEY = 'my-secret-key';
  * A simple bouncer interceptor.
  * In @grpc/grpc-js, server interceptors are implemented as a wrapper 
  * around the service definition.
- */
-
+*/
 
 module.exports = (serviceDefinition) => {
   const interceptedService = {};
@@ -33,7 +32,6 @@ module.exports = (serviceDefinition) => {
 
           callback(error);
         } else {
-
           call.emit('error', error);
           call.end();
         }

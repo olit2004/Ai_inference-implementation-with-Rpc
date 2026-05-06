@@ -16,6 +16,13 @@ const SERVER_ADDR = process.env.SERVER_ADDR || 'localhost:8080';
 const client = new aiProto.AIInference(SERVER_ADDR, grpc.credentials.createInsecure());
 
 
+function getAuthMetadata() {
+  const metadata = new grpc.Metadata();
+  metadata.add('authorization', 'Bearer my-secret-key');
+  return metadata;
+}
+
+
 function header(title) {
   console.log('\n' + chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
   console.log(chalk.cyan.bold(`  ${title}`));
@@ -33,11 +40,23 @@ function testSentiment() {
     header('SENTIMENT ANALYSIS (Unary RPC)');
     info('Sending request to AI model...');
 
+
+    // Enforce a strict 2.0 second deadline
+    const deadline = new Date(Date.now() + 2000);
+
     client.AnalyzeSentiment(
       { text: 'I absolutely love this product!' },
+      getAuthMetadata(),
+      { deadline },
       (err, res) => {
         if (err) {
-          error(`Sentiment Error: ${err.message}`);
+          if (err.code === grpc.status.DEADLINE_EXCEEDED) {
+            error(chalk.bgRed.white.bold(' TIMEOUT ') + ' The server took too long to respond (> 2.0s)');
+          } else if (err.code === grpc.status.UNAUTHENTICATED) {
+            error(chalk.bgRed.white.bold(' AUTH ERROR ') + ' Missing or invalid API Key');
+          } else {
+            error(`Sentiment Error: ${err.message}`);
+          }
           return resolve();
         }
 
@@ -57,10 +76,13 @@ function testGeneration() {
     header('TEXT GENERATION (Server Streaming RPC)');
     info('Streaming response...\n');
 
-    const call = client.GenerateText({
-      prompt: 'Write a short story about AI',
-      max_tokens: 100,
-    });
+    const call = client.GenerateText(
+      {
+        prompt: 'Write a short story about AI',
+        max_tokens: 100,
+      },
+      getAuthMetadata()
+    );
 
     call.on('data', (chunk) => {
       process.stdout.write(chalk.white(chunk.token));
@@ -85,7 +107,7 @@ function testSummarization() {
     header('SUMMARIZATION (Client Streaming RPC)');
     info('Sending document chunks...\n');
 
-    const call = client.SummarizeText((err, res) => {
+    const call = client.SummarizeText(getAuthMetadata(), (err, res) => {
       if (err) {
         error(`Summarization Error: ${err.message}`);
         return resolve();
@@ -117,7 +139,7 @@ function testChat() {
     header('CHAT (Bidirectional Streaming RPC)');
     info('Starting conversation...\n');
 
-    const call = client.Chat();
+    const call = client.Chat(getAuthMetadata());
 
     call.on('data', (res) => {
       process.stdout.write(chalk.green(res.message));

@@ -16,13 +16,16 @@ const chat = require('./handlers/chat.handler');
 
 function main() {
   const server = new grpc.Server();
+  const authInterceptor = require('./interceptors/authInterceptor');
 
-  server.addService(aiProto.AIInference.service, {
+  const handlers = {
     AnalyzeSentiment: analyzeSentiment,
     GenerateText: generateText,
     SummarizeText: summarizeText,
     Chat: chat,
-  });
+  };
+
+  server.addService(aiProto.AIInference.service, authInterceptor(handlers));
 
   const PORT = process.env.PORT || '50051';
   server.bindAsync(
